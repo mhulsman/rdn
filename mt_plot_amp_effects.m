@@ -26,6 +26,11 @@ function mt_plot_amp_effects(probes,varargin)
 
    % Default parameters
    steps = 11;
+   %should be enough probes in a probeset
+   ncount = mt_countprobes(probes);
+   probes = mt_sel_genes(probes,find(ncount > 5));
+
+   sel_arrays = 1:size(probes.pm,1);
    for i = 1:length(varargin)
       if(isstr(varargin{i}))
          switch(varargin{i})
@@ -34,6 +39,9 @@ function mt_plot_amp_effects(probes,varargin)
                i = i +1;
             case 'difference',
                difference = 1;
+            case 'sel_arrays',
+                i = i + 1;
+                sel_arrays = varargin{i};
         end;
       end;
    end;
@@ -54,19 +62,28 @@ function mt_plot_amp_effects(probes,varargin)
    
    narray = size(probes.pm,1);
    nprobe = size(probes.pm,2);
-
-   position = double(probes.position) / 10000;
+   if(~isfield(probes,'position'))
+       warning('No position field, assuming probes are ordered according to 5-3')
+   end;
+    
    %filling data structure
    fprintf(1,' Creating data structure\n');
    for i = 1:length(probes.name)
       if ((mod(i,1000)==0)), fprintf(1,'.'); end;
       t = find(probes.ind == i);
+      if(isfield(probes,'position'))
+          w = sortrows([t probes.position(t)],2);
+      else
+          w = t(:);
+      end;
+      t = w(:,1);
       d = signal(:,t); 
 
       %determine if interpolation is necessary
       if(length(t) == steps)  
          r(i,:,:) = d;
       else
+         w = 0:(1/(size(t,1) - 1)):1;
          r(i,:,:) = interp1(0:(1/(length(t)-1)):1,d',xsteps)';
       end;
    end;
@@ -77,14 +94,15 @@ function mt_plot_amp_effects(probes,varargin)
    % if probes has labels for the arrays, use them to give the different 
    % array sets a different color
    d = squeeze(median(r,1));
-   x = jet(size(d,1));
+   x = jet(length(sel_arrays));
    formats = {'-' ,':', '-.', '--'};
    if(exist('difference'))
        d = d - repmat(mean(d),narray,1);
    end;
 
-   for i = 1:size(d,1)
-       plot(d(i,:),formats{mod(i, 4) + 1}, 'Color',x(i,:));
+   for a = 1:length(sel_arrays)
+       i = sel_arrays(a);
+       plot(d(i,:),formats{mod(i, 4) + 1}, 'Color',x(a,:));
        hold on;
    end;
    hold off;
@@ -92,6 +110,7 @@ function mt_plot_amp_effects(probes,varargin)
    xlabel('Probe position order (5` <-- --> 3`)')
    ylabel('Log_2 expression intensity')
    title('Amplification effect')
-   legend(probes.array_names, 'Location', 'EastOutside');
-
+   if(length(sel_arrays) < 30)
+       legend(probes.array_names(sel_arrays), 'Location', 'EastOutside');
+   end;
 
