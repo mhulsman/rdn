@@ -109,5 +109,6 @@ Release history
       - auc stat function
       - plot array correlation, signal density
       - plot averaged local chip deviation of arrays 
+      - add background per probeset output to mt_sum_plm
 
 

@@ -107,6 +107,7 @@ else
    r.removed_factors = zeros(1,nprobe, 'single');
    r.array_factors = zeros(narray,ngene, 'single');
    r.overall_factors = zeros(1,ngene, 'single');
+   r.probeset_bg = zeros(1,ngene, 'single');
    if(exist('use_batch') && isfield(probes,'lab'))
       r.batch_factors = zeros(nlab,ngene, 'single');
    end;
@@ -209,6 +210,7 @@ else
       r.overall_factors(i) = overallf;
       r.array_factors(:,i) = arrayf;
       r.removed_factors(pos:(pos + nx -1)) = (probef2 == -1);
+      r.probeset_bg(i) = mean(bg(:));
       pos = pos + nx;
    end;
    fprintf(1,'\n');
