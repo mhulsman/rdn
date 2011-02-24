@@ -1,0 +1,101 @@
+Data import
+-----------
+To analyze a microarray dataset one needs both the CEL files 
+and platform data (CDF,GIN,sequence,probe sequence). These can
+be downloaded from Affymetrix. Functions to read and combine all 
+these files can be found in the import directory. 
+
+1) cdf = mt_readcdf('path/cdffile')
+2) gin = mt_readgin('path/ginfile')
+3) pa = mt_readprobe_annot('path/probe_sequencefile')                               [optional, necessary for background/hybridization correction]
+4) seq = mt_readseq('path/seqfile'); seq = mt_read_seq('path/anotherseqfile',seq);  [optional, only necessary for amplification correction]
+5) celpaths = dir_filter('path/','.cel'); cel = mt_readcel(celpaths);
+5) probes = mt_cel2probes(cel,cdf,gin,pa,seq);
+6) probes = mt_readgene_annot(probes, 'path/annotfile.csv')                                 [optional, adds probeset annotation from affymetrix reanalysis]
+
+
+Normalization
+-------------
+Then to normalize, use:
+probes = mt_normalize(probes);
+
+This script performs the different normalization steps in order. If
+one needs more control, one can perform each step separately:
+
+1) <dataset> = mt_bg_est(<dataset>,'m_estimation','reg_max',10)
+   Estimate optical and background signal.
+2) <dataset> = mt_cor_hybamp(<dataset>, 'm_estimation','use_amplification')
+   Estimate sequence/amplification model parameters for each array
+3) <dataset> = mt_cor_qq(<dataset>)
+   (optional) Perform quantile quantile normalization
+3) <dataset> = mt_cor_image(<dataset>,9,'use_optical')
+   Correct for array location effects
+4) <dataset> = mt_cor_qq(<dataset>) 
+   Redetermine quantile quantile normalization factors
+5) <dataset> = mt_sum_plm(<dataset>,'m_estimation')
+   Calculate summarized data. 
+
+
+Diff. expression
+----------------
+To determine statistics for differential expressed genes, one can use
+mt_sig and mt_sig_perm in combination with various stat functions.
+
+Annotation labels can be stored in an annot cell structure, where
+each cell is an annotation vector/matrix.
+
+Annot cell format:
+1. Continous labels: vector. Empty/non-measured: NaN
+2. 2-class: matrix with shape (narray,2), where 0/1 indicates class membership
+3. 2-class + extra permutation samples: matrix with shape (narray,3), where 
+   extra permutation samples are indicated in third column
+4. non-numeric labels (e.g. for plotting): use cell array of strings
+
+Example:
+<dataset>.annots = {
+                    {'Sample 1', 'Sample 2', 'Sample 3', 'Sample 4'},
+                    [1,2,3,4], 
+                    [0,1;1,0;0,0;1,0];
+                   }
+
+Release history
+--------------
+0.10: Initial release
+0.11: solve bug in mt_sel_array and mt_sel_genes
+0.12: gene_seq field was incorrectly stored as gene_sequence by mt_cel2probes
+0.13: - readseq now does not add probesets for which there is already a sequence. 
+      - add rmoutlier code for mt_cel2probes to distribution
+      - solve bug in check code of mt_cel2probes
+0.14: - mt_cel2probes did not attach sequence data if
+        no rmoutliers parameter was given
+0.15  - improved progress report
+      - solve bug in mt_sel_genes
+      - add support for pm-only arrays
+      - remove assumption of 25-length probe sequences
+      - fix reference to gene_seq field
+      - add support for new binary cel file format
+      - add support for new binary cdf file format
+      - improve gene name mapping in mt_readgene_annot
+      - make mt_readseq a bit more robust against empty lines
+0.20  - detection of array size did not work correctly for all array formats (fixed, thanks to Michel Bellis)
+      - reduce cel struct, cdf struct and probes structure memory usage, precision of 
+        various data structures reduced to single precision (thanks to Michel Bellis)
+      - removed unnecessary caching of weighted variable matrices in mt_bg_est and mt_cor_hybamp (thanks to Michel Bellis)
+      - outlier removal option in mt_cel2probes did not work anymore, fixed
+      - reduce_probes option for mt_bg_est and mt_cor_hybamp (increases speed, reduces memory at cost of some precision)
+      - mt_sum_plm memory usage reduced, some optimizations
+      - add mt_normalize function
+      - add mt_plot_array function
+      - add mt_plot_gene function
+      - add mt_plot_seq_effects function
+      - add mt_plot_amp_effects function
+      - reorganization of directory structure. No addpath command necessary anymore.
+      - add import documentation
+      - add mt_sig_perm function (permutation testing)
+      - add some stat functions (mt_stat_[sam,fc,f,cor,rankcor,ranksum])
+0.21  - allow points in probeset names (thanks to Michel Bellis)
+      - add missing mt_cummin function
+      - add documentation to mt_sig_perm and on annot format
+      - add mt_sig function, to calculate a certain statistic over genes
+0.22  - added export/import function for R expression data files
+
