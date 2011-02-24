@@ -98,4 +98,16 @@ Release history
       - add documentation to mt_sig_perm and on annot format
       - add mt_sig function, to calculate a certain statistic over genes
 0.22  - added export/import function for R expression data files
+0.23  - cel file header corruption check
+      - handle extra columns in probe annot file 
+      - make buffer large enough for very large R expression files
+      - mt_real_signal non private
+      - selection of indmm now backwards compatible
+      - option for label ordering mt_plot_gene
+      - accurately determine maximum number of permutations in multi-class case
+      - plotting of amplification effect without position info, only use probesets with more than 5 probes
+      - auc stat function
+      - plot array correlation, signal density
+      - plot averaged local chip deviation of arrays 
+
 
