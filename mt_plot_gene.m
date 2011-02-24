@@ -25,6 +25,8 @@
 % Delft University of Technology, Mekelweg 4, 2628 CD Delft, The Netherlands
 
 function mt_plot_gene(probes,genenr,varargin)
+   order = 1:length(probes.array_names);
+
    for i = 1:length(varargin)
       if(isstr(varargin{i}))
          switch(varargin{i})
@@ -33,6 +35,13 @@ function mt_plot_gene(probes,genenr,varargin)
             case 'label',
                i = i+1;
                use_label = varargin{i};
+            case 'order',
+                i = i+1;
+                lbls = probes.annots{varargin{i}};
+                if(size(lbls,2) > 1)
+                    lbls = lbls * (1:size(lbls,2))';
+                end;
+                [dummy, order] = sort(lbls);
          end;
       end;
    end;
@@ -47,27 +56,22 @@ function mt_plot_gene(probes,genenr,varargin)
    if(exist('use_sort'))
       if(isfield(probes,'array_factors'))
          m = probes.overall_factors(genenr) + probes.array_factors(:,genenr);
-         [dummy,sidx] = sort(m);
-         signal = signal(sidx,:);
-      else
-          [m,i] = max(max(signal));
-          [signal,sidx] = sortrows(signal,i);
+         [dummy,order] = sort(m);
       end;
-   else
-      sidx = (1:narray)';
    end;
+
+   
    
    style_pos = {'-','--','-.'};
    for i = 1:length(probe_idxs)
       style = style_pos{mod(i-1,length(style_pos)) + 1};
-      h = plot(signal(:,i),style);
+      h = plot(signal(order,i),style);
       set(h,'Color',cmap(i,:));
       hold on;
    end;
 
    if(isfield(probes,'array_factors'))
-        m = probes.overall_factors(genenr) + probes.array_factors(:,genenr);
-        m = m(sidx);
+        m = probes.overall_factors(genenr) + probes.array_factors(order,genenr);
         h = plot(m,'k');
         set(h,'LineWidth',2);
    end;
@@ -86,45 +90,52 @@ function mt_plot_gene(probes,genenr,varargin)
    legend(legend_ids, 'Location', 'SouthOutside')
    grid on
 
-   if(exist('use_label'))
-      ylim = get(gca,'YLim');
-      d = probes.annots(use_label);
-      for i =1:length(sidx)
-         text(i,20 + 0.5,d{sidx(i)});
-         text(i,20 + 0.2,num2str(sidx(i)));
-      end;
-   end;
 
    xlabel('Array number')
    ylabel('Log_2 intensity')
    
    %set xtick labels according to sort order
-   set(gca,'XTick',(1:narray));
-   set(gca,'XTickLabel',num2str(sidx));
+   jump = ceil(narray / 40);
+   set(gca,'XTick',(1:jump:narray));
+   if(exist('use_label'))
+      lbl = probes.annots{use_label};
+      if(size(lbl,2) > 1)
+        lbl = lbl * (1:size(lbl,2))';
+      end;
+      xlabs = num2str(lbl(order));
+   else
+      xlabs = num2str((1:narray)');
+   end;
+   xlabs = xlabs(1:jump:narray,:);
+   set(gca,'XTickLabel',xlabs);
+   
 
    %generating title
    if(isfield(probes, 'gene_names') & ~strcmp(probes.gene_names{genenr}, '---'))
        k = {[probes.gene_names{genenr},': ',probes.gene_description{genenr}]};
 
    else
-    if(isfield(probes,'desc'))
-        k = regexp(probes.desc{genenr},'DEF\=(.*?)\s/','tokens');
-        if(length(k) == 0)
-            k = regexp(probes.desc{genenr},'GEN\=(.*?)\s/','tokens');
+        if(isfield(probes,'desc'))
+            k = regexp(probes.desc{genenr},'DEF\=(.*?)\s/','tokens');
+            if(length(k) == 0)
+                k = regexp(probes.desc{genenr},'GEN\=(.*?)\s/','tokens');
+            end;
+            if(length(k) == 0)
+                k = regexp(probes.desc{genenr},'UG_TITLE\=(.*?)\s/','tokens');
+            end;
+        else
+            k = probes.name(genenr);
         end;
-        if(length(k) == 0)
-            k = regexp(probes.desc{genenr},'UG_TITLE\=(.*?)\s/','tokens');
-        end;
-    else
-        k = probes.name{genenr};
-    end;
-  end;
+   end;
+   if(length(k) == 0)
+       k= probes.name(genenr);                
+   end;
 
-    if(length(k) == 1)
-        title(['Gene plot of: ', k{1}])
-    else
-        title('Gene plot (gene unkown)')
-    end;
+   if(length(k) == 1)
+       title(['Gene plot of: ', k{1}])
+   else
+       title('Gene plot (gene unkown)')
+   end;
    hold off;
    
 
