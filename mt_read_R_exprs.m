@@ -35,7 +35,7 @@ for i = 1:length(start)
 end;
 
 %read probe names
-tmp = textscan(f,'%s%*[^\n]');
+tmp = textscan(f,'%s%*[^\n]','BufSize',64 * 1024 * 1024);
 probe_names = tmp{1};
 fclose(f);
 
@@ -51,7 +51,7 @@ end;
 %matches array names
 acounter = 1;
 for i = 1:length(array_names)
-   t = find(strcmp(array_names{i},probes.array_names));
+   t = find(cellfun(@length,strfind(probes.array_filenames,array_names{i})));
    if(length(t) > 0)
       array_idx(t) = acounter;
       acounter = acounter + 1;
