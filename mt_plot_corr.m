@@ -12,8 +12,8 @@
 % SEE ALSO
 % MT_COR_IMAGE, MT_PLOT_SEQ_EFFECTS, MT_PLOT_AMP_EFFECTS, MT_PLOT_GENE
 %
-% (c) Marc Hulsman, 2010
-% Information & Communication Theory Group
+% (c) Marc Hulsman, 2011
+% Delft Bioinformatics Lab
 % Faculty of Electrical Engineering, Mathematics and Computer Science
 % Delft University of Technology, Mekelweg 4, 2628 CD Delft, The Netherlands
 
