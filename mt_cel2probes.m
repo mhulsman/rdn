@@ -36,7 +36,6 @@ function probes = mt_cel2probes (cel,cdf,gin,probeannot,seq,rmoutliers,progress)
 	if (nargin < 5), seq = []; end;
 	if (nargin < 4), probeannot = []; end;
 	if (nargin < 3), gin        = []; end;
-    seq
 
 	if (progress), fprintf(1,'Converting\n'); end;
 

@@ -47,6 +47,7 @@ function cel = mt_readcel(fname,progress)
             ndatagroup = fread(f, 1, 'int32', 'ieee-be');
             datagroup_pos = fread(f, 1, 'uint32', 'ieee-be');
             header = readheader(f);
+            cel{fn}.header = header;
 
             %go to first data group (should already be there after reading
             %header, but just in case
@@ -55,8 +56,13 @@ function cel = mt_readcel(fname,progress)
 
             %somehow cel_cols and cel_rows do not give the correct answer...
             %try to find using Grid* params
-            chipcols= double(round(header.algorithm_param_GridURX(1) - header.algorithm_param_GridULX(1)));
-            chiprows = double(round(header.algorithm_param_GridLLY(1) - header.algorithm_param_GridULY(1)));
+            if(isfield(header,'algorithm_param_GridURX'))
+                chipcols= double(round(header.algorithm_param_GridURX(1) - header.algorithm_param_GridULX(1)));
+                chiprows = double(round(header.algorithm_param_GridLLY(1) - header.algorithm_param_GridULY(1)));
+            else
+                chipcols = 1;
+                chiprows = 1;
+            end;
 
             %M2
             %if chipcols*chiprows~=nb of probes => sqr(nb of probes)xsqr(nb of probes) is suggested as the right chip size
@@ -111,17 +117,16 @@ function cel = mt_readcel(fname,progress)
             cel{fn}.cols=currcols;
             cel{fn}.rows=currrows;           
 
-            cel{fn}.name = fname{fn};
-            cel{fn}.filename = fname{fn};
         else
+            fseek(f,0,'bof');
             magic = fread(f,1,'int32');
             cel{fn}.version = fread(f,1,'int32');
             if ((magic == 64) && (cel{fn}.version >= 4))
                 % Read sizes.
-                cols        = fread(f,1,'int32');
-                rows        = fread(f,1,'int32');
-                cells       = fread(f,1,'int32');
-                header_len  = fread(f,1,'int32');
+                cel{fn}.cols        = fread(f,1,'int32');
+                cel{fn}.rows        = fread(f,1,'int32');
+                cel{fn}.cells       = fread(f,1,'int32');
+                cel{fn}.header_len  = fread(f,1,'int32');
             else
                 % Seek CEL block.
                 fseek(f,0,'bof'); if (search(f,'[CEL]') < 0), error ('cannot find [CEL] block'); end;
@@ -152,6 +157,8 @@ function cel = mt_readcel(fname,progress)
                 line = fgets(f); cel{fn}.algorithmparameters 	= sscanf(line,'AlgorithmParameters=%s');
             end;
         end;
+        cel{fn}.name = fname{fn};
+        cel{fn}.filename = fname{fn};
 
       	% Allocate memory.
 
@@ -177,135 +184,135 @@ function cel = mt_readcel(fname,progress)
                 end;
 
             case 4
-            % Skip algorithm and parameter settings blocks.
-            fseek(f,24+header_len,'bof');  alg_len = fread(f,1,'int32');
-            fseek(f,alg_len,'cof');        par_len = fread(f,1,'int32');
-            fseek(f,par_len,'cof');        cell_margin = fread(f,1,'int32');
+                % Skip algorithm and parameter settings blocks.
+                fseek(f,24+cel{fn}.header_len,'bof');  alg_len = fread(f,1,'int32');
+                fseek(f,alg_len,'cof');        par_len = fread(f,1,'int32');
+                fseek(f,par_len,'cof');        cell_margin = fread(f,1,'int32');
 
-            % Read data sizes.
-            cel{fn}.noutliers   = fread(f,1,'uint32');
-            cel{fn}.nmasks      = fread(f,1,'uint32');
-            cel{fn}.nsubgrids   = fread(f,1,'int32');
-        
-          	if (progress), fprintf(1,'   %d probes ',cel{fn}.nprobes); end;
-
-            % 3. Read intensities. Use the 'skip' option.
-
-            pos = ftell(f);
-            cel{fn}.mean = single(reshape(fread(f,cel{fn}.nprobes,'float32',6),cel{fn}.rows,cel{fn}.cols));
-            %fseek(f,pos+4,'bof');
-            %cel{fn}.std  = reshape(fread(f,cel{fn}.nprobes,'float32',6),cel{fn}.rows,cel{fn}.cols);
-            %fseek(f,pos+8,'bof');
-            %cel{fn}.npixels = reshape(fread(f,cel{fn}.nprobes,'int16',6),cel{fn}.rows,cel{fn}.cols);
-            fseek(f,pos+10*cel{fn}.nprobes,'bof');
-
-          	if (progress), fprintf(1,'\n  masks, outliers, modified\n'); end;
-
-            % 4. Read masked probes. Allocate sparse matrix.
+                % Read data sizes.
+                cel{fn}.noutliers   = fread(f,1,'uint32');
+                cel{fn}.nmasks      = fread(f,1,'uint32');
+                cel{fn}.nsubgrids   = fread(f,1,'int32');
             
+                if (progress), fprintf(1,'   %d probes ',cel{fn}.nprobes); end;
 
-          	if (cel{fn}.nmasks > 0)
-          		for i = 1:cel{fn}.nmasks
-                    pos = fread(f,2,'int16');
-                    cel{fn}.mask(pos(1)+1,pos(2)+1) = 1; 
-                end
+                % 3. Read intensities. Use the 'skip' option.
+
+                pos = ftell(f);
+                cel{fn}.mean = single(reshape(fread(f,cel{fn}.nprobes,'float32',6),cel{fn}.rows,cel{fn}.cols));
+                %fseek(f,pos+4,'bof');
+                %cel{fn}.std  = reshape(fread(f,cel{fn}.nprobes,'float32',6),cel{fn}.rows,cel{fn}.cols);
+                %fseek(f,pos+8,'bof');
+                %cel{fn}.npixels = reshape(fread(f,cel{fn}.nprobes,'int16',6),cel{fn}.rows,cel{fn}.cols);
+                fseek(f,pos+10*cel{fn}.nprobes,'bof');
+
+                if (progress), fprintf(1,'\n  masks, outliers, modified\n'); end;
+
+                % 4. Read masked probes. Allocate sparse matrix.
+                
+
+                if (cel{fn}.nmasks > 0)
+                    for i = 1:cel{fn}.nmasks
+                        pos = fread(f,2,'int16');
+                        cel{fn}.mask(pos(1)+1,pos(2)+1) = 1; 
+                    end
+                end;
+
+                % 5. Read outliers. Allocate sparse matrix.
+                
+                cel{fn}.outlier = spalloc(cel{fn}.rows,cel{fn}.cols,cel{fn}.noutliers);	
+
+                if (cel{fn}.noutliers > 0)
+                    for i = 1:cel{fn}.noutliers
+                        pos = fread(f,2,'int16');
+                        cel{fn}.outlier(pos(1)+1,pos(2)+1) = 1; 
+                    end
+                end;        
+            
+            case 3
+                cel{fn}.mean    	= zeros(cel{fn}.rows,cel{fn}.cols, 'single');
+                %cel{fn}.std     	= zeros(cel{fn}.rows,cel{fn}.cols);
+                %cel{fn}.npixels 	= zeros(cel{fn}.rows,cel{fn}.cols);
+
+                % 3. Read intensities.
+
+                if (search(f,'[INTENSITY]') < 0), error ('cannot find [INTENSITY] block'); end;
+                line = fgets(f); 
+                if (sscanf(line,'NumberCells=%d') ~= cel{fn}.nprobes)
+                    error ('number of probes does not match');
+                end;
+                line = fgets(f);	% Skip legend line.
+                
+                if (progress), fprintf(1,'   %d probes ',cel{fn}.nprobes); end;
+        
+                %M1
+                C = textscan(f,'%d %d %f %f %d');
+                p1 = C{1}+1; p2 = C{2}+1; mev = C{3}; sev = C{4}; npix = C{5};
+                pos = sub2ind(size(cel{fn}.mean),p1,p2);
+
+                cel{fn}.mean(pos) 		= mev;		% Store values.
+                %cel{fn}.std(pos)  		= sev;
+                %cel{fn}.npixels(pos) 	= npix;
+            
+                if (progress), fprintf(1,'\n  masks, outliers, modified\n'); end;
+                        
+                % 4. Read masks.
+            
+                if (search(f,'[MASKS]') < 0), error ('cannot find [MASKS] block'); end;
+                line = fgets(f); 
+                cel{fn}.nmasks = sscanf(line,'NumberCells=%d');
+            
+                % Allocate sparse matrix.
+                %cel{fn}.mask = spalloc(cel{fn}.rows,cel{fn}.cols,cel{fn}.nmasks);	
+        
+                if (cel{fn}.nmasks > 0)
+                    line = fgets(f);	% Skip legend line.
+                    for i = 1:cel{fn}.nmasks
+                        line = fgets(f); 
+                        val	 = sscanf(line,' %d %d');									% Read position.
+                        %cel{fn}.mask(val(1)+1,val(2)+1) = 1;					% Mark as masked.
+                    end;
+                end;
+        
+                % 5. Read outliers.
+
+                if (search(f,'[OUTLIERS]') < 0), error ('cannot find [OUTLIERS] block'); end;
+                line = fgets(f); 
+                cel{fn}.noutliers = sscanf(line,'NumberCells=%d');
+        
+                % Allocate sparse matrix.
+                cel{fn}.outlier = spalloc(cel{fn}.rows,cel{fn}.cols,cel{fn}.noutliers);	
+
+                if (cel{fn}.noutliers > 0)
+                    line = fgets(f);	% Skip legend line.
+                    for i = 1:cel{fn}.noutliers
+                        line = fgets(f);
+                        val  = sscanf(line,' %d %d');									% Read position.
+                        cel{fn}.outlier(val(1)+1,val(2)+1) = 1;				% Mark as outlier.
+                    end;
+                end;
+                
+                % 6. Read modified.
+
+                if (search(f,'[MODIFIED]') < 0), error ('cannot find [MODIFIED] block'); end;
+                line = fgets(f); 
+                cel{fn}.nmodified = sscanf(line,'NumberCells=%d');
+
+                % Allocate sparse matrix.
+                %cel{fn}.modified = spalloc(cel{fn}.rows,cel{fn}.cols,cel{fn}.nmodified);	
+
+                if (cel{fn}.nmodified > 0)
+                    line = fgets(f);	% Skip legend line.
+                    for i = 1:cel{fn}.nmodified
+                        line = fgets(f);
+                        val  = sscanf(line,' %d %d %f');							% Read position.
+                        %cel{fn}.modified(val(1)+1,val(2)+1) = val(3);	% Store original mean.
+                    end;
+                end;
+
+                fclose(f);
+
             end;
-
-            % 5. Read outliers. Allocate sparse matrix.
-            
-          	cel{fn}.outlier = spalloc(cel{fn}.rows,cel{fn}.cols,cel{fn}.noutliers);	
-
-          	if (cel{fn}.noutliers > 0)
-          		for i = 1:cel{fn}.noutliers
-                    pos = fread(f,2,'int16');
-                    cel{fn}.outlier(pos(1)+1,pos(2)+1) = 1; 
-                end
-            end;        
-            
-        case 3
-            cel{fn}.mean    	= zeros(cel{fn}.rows,cel{fn}.cols, 'single');
-            %cel{fn}.std     	= zeros(cel{fn}.rows,cel{fn}.cols);
-            %cel{fn}.npixels 	= zeros(cel{fn}.rows,cel{fn}.cols);
-
-            % 3. Read intensities.
-
-          	if (search(f,'[INTENSITY]') < 0), error ('cannot find [INTENSITY] block'); end;
-          	line = fgets(f); 
-          	if (sscanf(line,'NumberCells=%d') ~= cel{fn}.nprobes)
-          		error ('number of probes does not match');
-          	end;
-          	line = fgets(f);	% Skip legend line.
-          	
-          	if (progress), fprintf(1,'   %d probes ',cel{fn}.nprobes); end;
-      
-            %M1
-            C = textscan(f,'%d %d %f %f %d');
-            p1 = C{1}+1; p2 = C{2}+1; mev = C{3}; sev = C{4}; npix = C{5};
-            pos = sub2ind(size(cel{fn}.mean),p1,p2);
-
-       		cel{fn}.mean(pos) 		= mev;		% Store values.
-       		%cel{fn}.std(pos)  		= sev;
-        	%cel{fn}.npixels(pos) 	= npix;
-        
-          	if (progress), fprintf(1,'\n  masks, outliers, modified\n'); end;
-          			
-          	% 4. Read masks.
-        
-          	if (search(f,'[MASKS]') < 0), error ('cannot find [MASKS] block'); end;
-          	line = fgets(f); 
-          	cel{fn}.nmasks = sscanf(line,'NumberCells=%d');
-        
-          	% Allocate sparse matrix.
-          	%cel{fn}.mask = spalloc(cel{fn}.rows,cel{fn}.cols,cel{fn}.nmasks);	
-    
-          	if (cel{fn}.nmasks > 0)
-          		line = fgets(f);	% Skip legend line.
-  		        for i = 1:cel{fn}.nmasks
-          			line = fgets(f); 
-          			val	 = sscanf(line,' %d %d');									% Read position.
-          			%cel{fn}.mask(val(1)+1,val(2)+1) = 1;					% Mark as masked.
-          		end;
-          	end;
-  	
-          	% 5. Read outliers.
-
-          	if (search(f,'[OUTLIERS]') < 0), error ('cannot find [OUTLIERS] block'); end;
-          	line = fgets(f); 
-          	cel{fn}.noutliers = sscanf(line,'NumberCells=%d');
-  	
-          	% Allocate sparse matrix.
-          	cel{fn}.outlier = spalloc(cel{fn}.rows,cel{fn}.cols,cel{fn}.noutliers);	
-
-          	if (cel{fn}.noutliers > 0)
-          		line = fgets(f);	% Skip legend line.
-           		for i = 1:cel{fn}.noutliers
-          			line = fgets(f);
-          			val  = sscanf(line,' %d %d');									% Read position.
-          			cel{fn}.outlier(val(1)+1,val(2)+1) = 1;				% Mark as outlier.
-          		end;
-          	end;
-  			
-          	% 6. Read modified.
-
-          	if (search(f,'[MODIFIED]') < 0), error ('cannot find [MODIFIED] block'); end;
-          	line = fgets(f); 
-          	cel{fn}.nmodified = sscanf(line,'NumberCells=%d');
-
-          	% Allocate sparse matrix.
-          	%cel{fn}.modified = spalloc(cel{fn}.rows,cel{fn}.cols,cel{fn}.nmodified);	
-
-          	if (cel{fn}.nmodified > 0)
-            	line = fgets(f);	% Skip legend line.
-            	for i = 1:cel{fn}.nmodified
-               		line = fgets(f);
-            		val  = sscanf(line,' %d %d %f');							% Read position.
-            		%cel{fn}.modified(val(1)+1,val(2)+1) = val(3);	% Store original mean.
-            	end;
-          	end;
-
-          	fclose(f);
-
-    	end;
     end;
     
     % If just one filename is specified, don't return a cell array of CELs.
@@ -347,11 +354,14 @@ function header = readheader(f)
 
     %read params
     header = readparams(f,  header);
-
+    if(isfield(header,'error_occurred'))
+        header.parents = {};
+        return;
+    end;
     nparentheader = fread(f, 1, 'int32', 'ieee-be');
     parent = {};
     for i = 1:nparentheader
-        parent{end + 1} = readheader(f);
+        parent{end + 3} = readheader(f);
     end;
     header.parents = parent;
 return
@@ -437,6 +447,11 @@ function header = readparams(f, header)
             name = strrep(name, 'affymetrix_', '');
         value = uint8(readstr(f));
         type = readwstr(f);
+        if(length(type)>100)
+            warning('Possible corruption in file, could not find correct type for header parameter');
+            header.error_occurred = 1;
+            return;
+        end;
         switch(type)
             case 'text/x-calvin-integer-8'
                 value = swapbytes(typecast(value, 'int8'));
@@ -457,7 +472,14 @@ function header = readparams(f, header)
             case 'text/ascii'
                 value = char(value);
         end;
+        %header
+        %namevaluenr
+        %i
         header = setfield(header, name, value);
+        %name
+        %value
+        %type
+        %uint16(type)
 
     end;
 
