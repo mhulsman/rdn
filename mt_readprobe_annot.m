@@ -11,6 +11,9 @@
 % DESCRIPTION
 % Reads in an Affymetrix probe anntoation file. All fields are stored 
 % in a self-explanatory structure. 
+% Assumes ascii or UTF8 format. In case UTF16 was used, please use the 
+% iconv utility to convert the file: 
+% iconv -f UTF16 -t UTF8 probetab_file > new_probetab_file
 %
 % SEE ALSO
 % MT_READCDF, MT_READCEL, MT_READGIN, MT_CEL2PROBES
@@ -24,11 +27,20 @@ function probeannot = mt_readprobe_annot(fname)
 
    f = fopen(fname,'r');
    if (f <= 0), error ('cannot open file'); end;
+   line = fgetl(f);
+   line == sprintf('\t')
+   nfields = sum(line == sprintf('\t')) + 1;
    frewind(f);
-   res = textscan(f,'%s%d%d%d%s%s','headerLines',1);
+
+   fdescriptor = '%s%d%d%d%s%s';
+   nfields = nfields - 6;
+   while(nfields > 0)
+      fdescriptor = strcat(fdescriptor,'%s');
+      nfields = nfields - 1;
+   end;
+   res = textscan(f,fdescriptor,'headerLines',1,'Delimiter','\t');
    fclose(f);
 
-   
    probeannot.probeind = zeros(max(res{2}) + 1,max(res{3}) + 1);
    probeannot.name = res{1};
    probeannot.pos = [res{2} + 1 res{3} + 1];
