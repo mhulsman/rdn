@@ -67,19 +67,58 @@ function mt_plot_array(probes,arraynr,varargin)
    else
        array_pm = data;
    end;
+   if(isfield(probes,'array_ind'))
+        array_ind = probes.array_ind(i);
+   else
+        array_ind = 1;
+   end;
     
    if(exist('batch_effects'))
        map = [];
-       for i = 1:narrays
-           cmap = mt_map_to_array(probes,array_pm(i,:)); 
+       fprintf(1,' Determining batch effects');
+       for a = 1:length(arraynr)
+           i = arraynr(a);
+           if(mod(a,50) == 0)
+               fprintf(1,'.');
+           end;
+           if(isfield(probes,'array_ind'))
+                   array_ind = probes.array_ind(i);
+           else
+                   array_ind = 1;
+           end;
+           cmap = mt_map_to_array(probes,array_pm(i,:),array_ind); 
            map = [map median(cmap')'];
        end;
-       imagesc(map);
+       fprintf(1,'\n');
    else
-       array_pm = array_pm(arraynr,:);
-       map = mt_map_to_array(probes,array_pm); 
-       imagesc(map);
+       if(length(arraynr) == 1)
+            array_pm = array_pm(arraynr,:);
+            if(isfield(probes,'array_ind'))
+                   array_ind = probes.array_ind(arraynr);
+            else
+                   array_ind = 1;
+            end;
+            map = mt_map_to_array(probes,array_pm,array_ind); 
+       else
+            xmap = zeros(length(arraynr),probes.nrows,probes.ncols);
+            fprintf(1,' Averaging arrays');
+            for a = 1:length(arraynr)
+                i = arraynr(a);
+                if(mod(a,10) == 0)
+                    fprintf(1,'.');
+                end;
+                if(isfield(probes,'array_ind'))
+                    array_ind = probes.array_ind(i);
+                else
+                    array_ind = 1;
+                end;
+                xmap(a,:,:) = mt_map_to_array(probes,array_pm(i,:),array_ind); 
+            end;
+            map = squeeze(mean(xmap,1));
+            fprintf(1,'\n');
+       end;
    end;
+   imagesc(map);
 
    if(~exist('c_range'))
     if(exist('image_effects') || exist('batch_effects'))
@@ -96,5 +135,14 @@ function mt_plot_array(probes,arraynr,varargin)
    set(gca,'CLim',c_range);
    
    colorbar
-   title('Array image')
+   if(length(arraynr) == 1)
+       title(sprintf('Array image %d:%s',arraynr,probes.array_filenames{arraynr}))
+   else
+      if(exist('batch_effects'))
+        title('Arrays median row effect image')
+      else
+        title('Arrays average image')
+      end;
+   end;
+
 
