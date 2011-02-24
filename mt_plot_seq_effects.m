@@ -29,12 +29,16 @@ function mt_plot_seqeffects(probes,varargin)
 chars = [2,3];
 seq_range = 1:25;
 limit = 100;
+sel_arrays = 1:size(probes.pm,1);
 for i = 1:length(varargin)
    if(isstr(varargin{i}))
       switch(varargin{i})
          case 'chars',
             chars = varargin{i+1};
             i = i + 1;
+         case 'sel_arrays',
+            i = i + 1;
+            sel_arrays = varargin{i};
          case 'difference',
             difference = 1;
          case 'seq_range',
@@ -75,8 +79,8 @@ remove = gc_nr < limit;
 gc_u = gc_u(~remove);
 gc_nr = gc_nr(~remove);
 
-narray = size(probes.pm,1);
 
+narray = size(probes.pm,1);
 signal = mt_real_signal(probes);
 
 data = zeros(narray,length(gc_u));
@@ -85,14 +89,15 @@ for i = 1:length(gc_u)
    data(:,i) = median(signal(:,find(gc_content == gc_u(i))),2);
 end;
 
-x = jet(size(data,1));
+x = jet(length(sel_arrays));
 formats = {'-', ':', '-.', '--'};
 
 if(exist('difference'))
     data = data - repmat(mean(data),narray,1);
 end;
-for i = 1:size(data,1)
-    plot(data(i,:),formats{mod(i, 4) + 1},'Color',x(i,:));
+for a = 1:length(sel_arrays)
+    i = sel_arrays(a);
+    plot(data(i,:),formats{mod(i, 4) + 1},'Color',x(a,:));
     hold on;
 end;
 hold off;
@@ -102,5 +107,7 @@ set(gca,'XTickLabel',gc_u)
 xlabel('Number of specified nucleotides in probe')
 ylabel('Log_2 median expression intensity')
 title(strcat('Sequence effect for nucleotide(s): ', dna_letters(chars)));
-legend(probes.array_names, 'Location','EastOutside')
+if(length(sel_arrays) < 30)
+    legend(probes.array_names(sel_arrays), 'Location','EastOutside')
+end;
 
