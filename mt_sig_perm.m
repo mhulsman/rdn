@@ -84,8 +84,18 @@ else
         clabel = sum(lbl);
         maxuniq = factorial(size(lbl,1)) / (factorial(clabel(1)) * factorial(clabel(2)));
     else
-        %continous values
-        maxuniq = factorial(size(lbl,1));
+        ulbl = unique(lbl)
+        if(length(ulbl) < length(lbl))
+            ulbl_count = zeros(length(ulbl),1);
+            for  i = 1:length(ulbl)
+                ulbl_count(i) = sum(lbl == ulbl(i));
+            end;
+            corr = factorial(ulbl_count)
+            maxuniq = factorial(size(lbl,1)) / prod(corr)
+        else
+            %continous values
+            maxuniq = factorial(size(lbl,1));
+        end;
     end;
 end;
 disp(sprintf('Maximum number of unique permutations: %d',maxuniq));
@@ -120,9 +130,11 @@ fsstat = sstat(filter);
 %run permutations
 mlength = fprintf(1,'Permutating: %d/%d with %d probesets left...',0,nperms,sum(filter));
 fpermres = zeros(size(permres));
+nprobesets = sum(filter);
+step_size = 100;
 for i = 1:nperms
-    %every 1000 permutations, refilter the dataset
-    if(mod(i,1000) == 0)
+    %every step_size permutations, refilter the dataset
+    if(mod(i,step_size) == 0)
         %calculate new permres
         permres(filter) = permres(filter) + fpermres;
         %filter on threshold
@@ -133,8 +145,6 @@ for i = 1:nperms
         %update filter
         filter = nfilter;
         nprobesets = sum(filter);
-        fprintf(1,repmat('\b',1,mlength));
-        mlength = fprintf(1,'Permutating: %d/%d with %d probesets left...',i,nperms,nprobesets);
 
         fpermres= zeros(nprobesets,1);
         %if no probesets left, we are done.
@@ -143,6 +153,13 @@ for i = 1:nperms
         end;
         fsignal = signal(:,filter);
         fsstat = sstat(filter);
+        if(i >= 1000)
+            step_size = 1000;
+        end;
+    end;
+    if(mod(i,50) == 0)
+        fprintf(1,repmat('\b',1,mlength));
+        mlength = fprintf(1,'Permutating: %d/%d with %d probesets left...',i,nperms,nprobesets);
     end;
     pstat = feval(statfun,fsignal,lbl(randperm(narray),:),xvar);
     fpermres = fpermres + (abs(pstat) > abs(fsstat));
