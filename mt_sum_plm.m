@@ -100,7 +100,7 @@ end;
 
 %ASSUMES THAT PROBES ARE ORDERED ON PROBE NR!
 if(sum(~(probes.ind == sortrows(probes.ind,1))) > 0)
-   fprinf(1,'ERROR: probes hould be ordered per gene and probe-nr');
+   fprintf(1,'ERROR: probes hould be ordered per gene and probe-nr');
 else
    fprintf(1,' Calculating PLMs');
    r.probe_factors = zeros(1,nprobe, 'single');
