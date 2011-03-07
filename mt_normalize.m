@@ -15,10 +15,27 @@
 % Faculty of Electrical Engineering, Mathematics and Computer Science
 % Delft University of Technology, Mekelweg 4, 2628 CD Delft, The Netherlands
 
-function probes = mt_normalize(probes)
+function probes = mt_normalize(probes, varargin)
+
+
+for i = 1:length(varargin)
+   if(isstr(varargin{i}))
+      switch(varargin{i})
+         case 'no_summarization',
+            no_summarization = 1;
+      end;
+   end;
+end;
 
 probes = mt_bg_est(probes,'reg_max',10,'m_estimation');
-probes = mt_cor_hybamp(probes,'m_estimation','use_amplification');
+if isfield(probes, 'gene_sequence')
+    probes = mt_cor_hybamp(probes,'m_estimation','use_amplification');
+else
+    probes = mt_cor_hybamp(probes,'m_estimation');
+end;
 probes = mt_cor_image(probes,9,'use_optical');
 probes = mt_cor_qq(probes);
-probes = mt_sum_plm(probes,'m_estimation','keep_probe_info');
+
+if ~exist('no_summarization')
+    probes = mt_sum_plm(probes,'m_estimation','keep_probe_info');
+end;    
