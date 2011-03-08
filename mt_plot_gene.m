@@ -123,8 +123,11 @@ function mt_plot_gene(probes,genenr,varargin)
             if(length(k) == 0)
                 k = regexp(probes.desc{genenr},'UG_TITLE\=(.*?)\s/','tokens');
             end;
+            if(length(k) == 0)
+                k = {sprintf('%s: %s',probes.name{genenr},probes.desc{genenr})};
+            end;
         else
-            k = probes.name(genenr);
+            k = {sprintf('%s: %s',probes.name{genenr},probes.desc{genenr})};
         end;
    end;
    if(length(k) == 0)
@@ -132,6 +135,7 @@ function mt_plot_gene(probes,genenr,varargin)
    end;
 
    if(length(k) == 1)
+       k{1} = strrep(k{1},sprintf('\t'),' ');
        title(['Gene plot of: ', k{1}])
    else
        title('Gene plot (gene unkown)')

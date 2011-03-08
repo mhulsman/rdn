@@ -1,7 +1,6 @@
 function p = mt_sel_arrays(probes,arraynrs)
 
 p = probes;
-fn = fieldnames(probes);
 
 %2-dims
 dim2 = {'pm','mm','annotations','bg_estimate','array_factors','resids','probe_weights','seq_factors',...
