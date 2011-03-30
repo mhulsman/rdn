@@ -24,7 +24,7 @@ fwrite(f,row1(1:(end-1)));
 fwrite(f,sprintf('\n'));
 
 %calculate signal
-signal = repmat(probes.overall_factors,size(probes.array_factors,1),1) + probes.array_factors;
+signal = mt_expr_signal(probes);
 
 %write data for each probe
 for i = 1:length(probes.name)

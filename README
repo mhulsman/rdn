@@ -36,8 +36,28 @@ one needs more control, one can perform each step separately:
    Calculate summarized data. 
 
 
-Diff. expression
-----------------
+Affy RDN interface
+------------------
+An alternative interface is available through the affy_rdn script developed by Michel Bellis.
+This interface is also suitable for use from the command line.
+
+#load cel files and save them in rdn format
+affy_rdn('cel', 'experiment_name', 'path_to_dir/with/cel_files')
+
+#load chip info files and save them in rdn format
+affy_rdn('info', 'experiment_name', 'path_to_dir/with/cel_files', 'chip_name', 'path_to_dir/with/chip_info_files')
+
+#run rdn normalization, and save results
+affy_rdn('rdn', 'experiment_name', 'path_to_dir/with/cel_files', 'chip_name', 'path_to_dir/with/chip_info_files')
+
+#print results
+affy_rdn('print', 'experiment_name', 'path_to_dir/with/cel_files')
+
+For more information, see the documentation in the affy_rdn file. 
+
+
+Differential expression detection
+---------------------------------
 To determine statistics for differential expressed genes, one can use
 mt_sig and mt_sig_perm in combination with various stat functions.
 
@@ -57,6 +77,9 @@ Example:
                     [1,2,3,4], 
                     [0,1;1,0;0,0;1,0];
                    }
+
+
+
 
 Release history
 --------------
@@ -110,5 +133,6 @@ Release history
       - plot array correlation, signal density
       - plot averaged local chip deviation of arrays 
       - add background per probeset output to mt_sum_plm
-
+0.24  - added affy_rdn.m command line script developed by Michel Bellis
+      - there is an mt_expr_signal function to recover the normalized summarized signal
 
