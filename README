@@ -134,5 +134,5 @@ Release history
       - plot averaged local chip deviation of arrays 
       - add background per probeset output to mt_sum_plm
 0.24  - added affy_rdn.m command line script developed by Michel Bellis
-      - there is an mt_expr_signal function to recover the normalized summarized signal
+      - added an mt_expr_signal function to recover the normalized summarized signal
 
